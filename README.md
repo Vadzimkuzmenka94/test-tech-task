@@ -66,3 +66,8 @@
 
 ![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/0656993b-95c5-43b0-a65b-1c6e2d702122)
 ![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/a51fd203-63cd-4c95-80a0-b67c90534f3a)
+![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/ed57327a-87b0-44d8-bda3-326f68eb6703)
+![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/93b23975-55be-4b20-be23-c09729d945e1)
+![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/5aa9b461-c0eb-4dd3-bb73-d294bbf5be29)
+![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/8c62e8db-1dd2-4463-a184-82b5ea0485fe)
+
