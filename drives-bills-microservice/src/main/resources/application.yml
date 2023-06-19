@@ -18,4 +18,3 @@ spring:
 topic:
   name: topic.driver.buy.car
   name-1: topic.add.detail
-
