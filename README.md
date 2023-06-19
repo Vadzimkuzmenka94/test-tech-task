@@ -70,4 +70,3 @@
 ![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/93b23975-55be-4b20-be23-c09729d945e1)
 ![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/5aa9b461-c0eb-4dd3-bb73-d294bbf5be29)
 ![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/8c62e8db-1dd2-4463-a184-82b5ea0485fe)
-
