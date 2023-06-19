@@ -1,5 +1,6 @@
 package com.example.carsdetailsmicroservice.controller;
 
+import com.example.carsdetailsmicroservice.controller.utils.ControllerUtils;
 import com.example.carsdetailsmicroservice.dto.detail.create.DetailCreateRequestDto;
 import com.example.carsdetailsmicroservice.dto.detail.get.DetailGetResponseDto;
 import com.example.carsdetailsmicroservice.dto.detail.update.DetailUpdateRequestDto;
@@ -44,12 +45,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/details")
 public class DetailController {
   private final DetailService detailService;
-  private final MessageSource messageSource;
+  private final ControllerUtils controllerUtils;
 
   @Autowired
-  public DetailController(DetailService detailService, MessageSource messageSource) {
+  public DetailController(DetailService detailService, ControllerUtils controllerUtils) {
     this.detailService = detailService;
-    this.messageSource = messageSource;
+    this.controllerUtils = controllerUtils;
   }
 
   @Operation(
@@ -78,7 +79,7 @@ public class DetailController {
   public ResponseEntity<MessageDto> createDetail(@RequestBody DetailCreateRequestDto detailRequestDto) {
     Detail detail = DetailMapper.INSTANCE.toDetail(detailRequestDto);
     detailService.createDetail(detail);
-    return createResponseEntityOk("create.detail.message");
+    return controllerUtils.createResponseEntityOk("create.detail.message");
   }
 
   @Operation(
@@ -178,7 +179,7 @@ public class DetailController {
   @DeleteMapping("/{serialNumber}")
   public ResponseEntity<MessageDto> deleteDetail(@PathVariable String serialNumber) {
     detailService.deleteDetail(serialNumber);
-    return createResponseEntityOk("delete.detail.message");
+    return controllerUtils.createResponseEntityOk("delete.detail.message");
   }
 
   @Operation(
@@ -207,11 +208,6 @@ public class DetailController {
   public ResponseEntity<MessageDto> updateDetail(@PathVariable String serialNumber,
                                                  @RequestBody DetailUpdateRequestDto updatedDetail) {
     detailService.changeDetail(serialNumber, updatedDetail);
-    return createResponseEntityOk("update.detail.message");
-  }
-
-  private ResponseEntity<MessageDto> createResponseEntityOk(String messageKey) {
-    String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
-    return ResponseEntity.status(HttpStatus.OK).body(new MessageDto(message));
+    return controllerUtils.createResponseEntityOk("update.detail.message");
   }
 }

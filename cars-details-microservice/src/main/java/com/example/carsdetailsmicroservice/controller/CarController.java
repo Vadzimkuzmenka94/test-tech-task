@@ -1,5 +1,6 @@
 package com.example.carsdetailsmicroservice.controller;
 
+import com.example.carsdetailsmicroservice.controller.utils.ControllerUtils;
 import com.example.carsdetailsmicroservice.dto.car.create.CarCreateRequestDto;
 import com.example.carsdetailsmicroservice.dto.car.get.CarGetResponseDto;
 import com.example.carsdetailsmicroservice.dto.car.update.CarUpdateRequestDto;
@@ -14,7 +15,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.servers.Server;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -46,12 +46,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/cars")
 public class CarController {
   private final CarService carService;
-  private final MessageSource messageSource;
+  private final ControllerUtils controllerUtils;
 
   @Autowired
-  public CarController(CarService carService, MessageSource messageSource) {
+  public CarController(CarService carService, ControllerUtils controllerUtils) {
     this.carService = carService;
-    this.messageSource = messageSource;
+    this.controllerUtils = controllerUtils;
   }
 
   @Operation(
@@ -79,7 +79,7 @@ public class CarController {
   @PostMapping
   public ResponseEntity<MessageDto> createCar(@RequestBody CarCreateRequestDto carRequestDto) {
     carService.registerCar(carRequestDto);
-    return createResponseEntityOk("create.car.message");
+    return controllerUtils.createResponseEntityOk("create.car.message");
   }
 
   @Operation(
@@ -204,7 +204,7 @@ public class CarController {
   @DeleteMapping("/{vin}")
   public ResponseEntity<MessageDto> deleteCar(@PathVariable String vin) {
     carService.deleteCar(vin);
-    return createResponseEntityOk("delete.car.message");
+    return controllerUtils.createResponseEntityOk("delete.car.message");
   }
 
   @Operation(
@@ -233,7 +233,7 @@ public class CarController {
   public ResponseEntity<MessageDto> updateCar(@PathVariable String vin,
                                               @RequestBody CarUpdateRequestDto updatedCar) {
     carService.updateCar(vin, updatedCar);
-    return createResponseEntityOk("update.car.message");
+    return controllerUtils.createResponseEntityOk("update.car.message");
   }
 
   @Operation(
@@ -263,10 +263,5 @@ public class CarController {
           throws JsonProcessingException {
     log.info("Received request to add detail to car");
     return carService.addDetail(detailAddEvent);
-  }
-
-  private ResponseEntity<MessageDto> createResponseEntityOk(String messageKey) {
-    String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
-    return ResponseEntity.status(HttpStatus.OK).body(new MessageDto(message));
   }
 }

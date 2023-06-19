@@ -1,5 +1,6 @@
 package com.example.drivesbillsmicroservice.controller;
 
+import com.example.drivesbillsmicroservice.controller.utils.ControllerUtils;
 import com.example.drivesbillsmicroservice.dto.driver.create.DriverCreateRequestDto;
 import com.example.drivesbillsmicroservice.dto.driver.get.DriverGetResponseDto;
 import com.example.drivesbillsmicroservice.dto.driver.update.DriverUpdateRequestDto;
@@ -36,12 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/drivers")
 public class DriverController {
   private final DriverService driverService;
-  private final MessageSource messageSource;
+  private final ControllerUtils controllerUtils;
 
   @Autowired
-  public DriverController(DriverService driverService, MessageSource messageSource) {
+  public DriverController(DriverService driverService, ControllerUtils controllerUtils) {
     this.driverService = driverService;
-    this.messageSource = messageSource;
+    this.controllerUtils = controllerUtils;
   }
 
   @Operation(
@@ -70,7 +71,7 @@ public class DriverController {
   public ResponseEntity<MessageDto> registerDriver(
           @Valid @RequestBody DriverCreateRequestDto driverCreateRequestDto) {
     driverService.registerDriver(driverCreateRequestDto);
-    return createResponseEntityOk("create.driver.message");
+    return controllerUtils.createResponseEntityOk("create.driver.message");
   }
 
 
@@ -127,7 +128,7 @@ public class DriverController {
   @DeleteMapping("/{passport}")
   public ResponseEntity<MessageDto> deleteDriverByPassport(@PathVariable String passport) {
     driverService.deleteDriver(passport);
-    return createResponseEntityOk("delete.driver.message");
+    return controllerUtils.createResponseEntityOk("delete.driver.message");
   }
 
   @Operation(
@@ -156,7 +157,7 @@ public class DriverController {
   public ResponseEntity<MessageDto> updateDriver(@PathVariable String passport,
                                                  @RequestBody DriverUpdateRequestDto updatedDriver) {
     driverService.updateDriver(passport, updatedDriver);
-    return createResponseEntityOk("update.driver.message");
+    return controllerUtils.createResponseEntityOk("update.driver.message");
   }
 
   @GetMapping
@@ -195,12 +196,6 @@ public class DriverController {
   @PostMapping("/buy-car")
   public String processCarPurchaseRequest(@RequestBody CarPurchaseEvent carPurchaseEvent)
           throws JsonProcessingException {
-    log.info("Purchase request received");
     return driverService.sendCarPurchaseEvent(carPurchaseEvent);
-  }
-
-  private ResponseEntity<MessageDto> createResponseEntityOk(String messageKey) {
-    String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
-    return ResponseEntity.status(HttpStatus.OK).body(new MessageDto(message));
   }
 }

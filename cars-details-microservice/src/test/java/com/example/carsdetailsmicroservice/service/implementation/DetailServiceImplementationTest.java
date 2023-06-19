@@ -5,248 +5,160 @@ import com.example.carsdetailsmicroservice.dto.detail.update.DetailUpdateRequest
 import com.example.carsdetailsmicroservice.entity.Detail;
 import com.example.carsdetailsmicroservice.exceptions.detail.DetailAlreadyExistException;
 import com.example.carsdetailsmicroservice.exceptions.detail.DetailNotFoundException;
-import com.example.carsdetailsmicroservice.kafka.Producer;
-import com.example.carsdetailsmicroservice.repository.CarRepository;
 import com.example.carsdetailsmicroservice.repository.DetailRepository;
-import com.example.carsdetailsmicroservice.service.CarService;
 import com.example.carsdetailsmicroservice.service.DetailService;
-import jakarta.persistence.EntityManager;
+import com.example.carsdetailsmicroservice.utils.TestConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.*;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.eq;
 
 class DetailServiceImplementationTest {
-    @Mock
-    private DetailRepository detailRepository;
-    @Mock
-    private DetailService detailService;
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        detailService = new DetailServiceImplementation(detailRepository);
-    }
+  @Mock
+  private DetailRepository detailRepository;
+  @Mock
+  private DetailService detailService;
+  @BeforeEach
+  void setUp() {
+    MockitoAnnotations.openMocks(this);
+    detailService = new DetailServiceImplementation(detailRepository);
+  }
 
+  @Test
+  void createDetail_CreatesDetail_WhenDetailDoesNotExist() {
+    Detail detail = createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(100.00));
+    when(detailRepository.existsBySerialNumber(detail.getSerialNumber())).thenReturn(false);
+    when(detailRepository.save(any(Detail.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    detailService.createDetail(detail);
+    verify(detailRepository, times(1)).save(detail);
+  }
 
-    @Test
-    void createDetail_CreatesDetail_WhenDetailDoesNotExist() {
-        // Arrange
-        Detail detail = createDetail("DETAIL1", BigDecimal.valueOf(100.00));
+  @Test
+  void createDetail_ThrowsDetailAlreadyExistException_WhenDetailExists() {
+    Detail detail = createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(100.00));
+    when(detailRepository.existsBySerialNumber(detail.getSerialNumber())).thenReturn(true);
+    assertThrows(DetailAlreadyExistException.class, () -> detailService.createDetail(detail));
+  }
 
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(detail.getSerialNumber())).thenReturn(false);
+  @Test
+  void getAllDetails_ReturnsAllDetails() {
+    List<Detail> detailList = createDetailList();
+    when(detailRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(detailList));
+    Page<DetailGetResponseDto> result = detailService.getAllDetails(TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_SERIAL_NUMBER);
+    assertEquals(detailList.size(), result.getContent().size());
+  }
 
-        // Mock the detailRepository.save() method
-        when(detailRepository.save(any(Detail.class))).thenAnswer(invocation -> invocation.getArgument(0));
+  @Test
+  void findDetailBySerialNumber_ReturnsDetailDto_WhenDetailExists() {
+    Detail detail = createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(100.00));
+    Optional<Detail> optionalDetail = Optional.of(detail);
+    when(detailRepository.findBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(optionalDetail);
+    Optional<DetailGetResponseDto> result = detailService.findDetailBySerialNumber(TestConstants.SERIAL_NUMBER);
+    assertTrue(result.isPresent());
+    assertEquals(detail.getSerialNumber(), result.get().getSerialNumber());
+    assertEquals(detail.getPrice(), result.get().getPrice());
+  }
 
-        // Act
-        detailService.createDetail(detail);
+  @Test
+  void findDetailBySerialNumber_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
+    when(detailRepository.findBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(Optional.empty());
+    assertThrows(DetailNotFoundException.class, () -> detailService.findDetailBySerialNumber(TestConstants.SERIAL_NUMBER));
+  }
 
-        // Assert
-        verify(detailRepository, times(1)).save(detail);
-    }
-
-    @Test
-    void createDetail_ThrowsDetailAlreadyExistException_WhenDetailExists() {
-        // Arrange
-        Detail detail = createDetail("DETAIL1", BigDecimal.valueOf(100.00));
-
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(detail.getSerialNumber())).thenReturn(true);
-
-        // Act & Assert
-        assertThrows(DetailAlreadyExistException.class, () -> detailService.createDetail(detail));
-    }
-
-    @Test
-    void getAllDetails_ReturnsAllDetails() {
-        // Arrange
-        List<Detail> detailList = createDetailList();
-
-        // Mock the detailRepository.findAll() method
-        when(detailRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(detailList));
-
-        // Act
-        Page<DetailGetResponseDto> result = detailService.getAllDetails(0, 10, "serialNumber");
-
-        // Assert
-        assertEquals(detailList.size(), result.getContent().size());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void findDetailBySerialNumber_ReturnsDetailDto_WhenDetailExists() {
-        // Arrange
-        String serialNumber = "DETAIL1";
-        Detail detail = createDetail(serialNumber, BigDecimal.valueOf(100.00));
-        Optional<Detail> optionalDetail = Optional.of(detail);
-
-        // Mock the detailRepository.findBySerialNumber() method
-        when(detailRepository.findBySerialNumber(serialNumber)).thenReturn(optionalDetail);
-
-        // Act
-        Optional<DetailGetResponseDto> result = detailService.findDetailBySerialNumber(serialNumber);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals(detail.getSerialNumber(), result.get().getSerialNumber());
-        assertEquals(detail.getPrice(), result.get().getPrice());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void findDetailBySerialNumber_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
-        // Arrange
-        String serialNumber = "DETAIL1";
-
-        // Mock the detailRepository.findBySerialNumber() method
-        when(detailRepository.findBySerialNumber(serialNumber)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(DetailNotFoundException.class, () -> detailService.findDetailBySerialNumber(serialNumber));
-    }
-
-    @Test
-    void searchDetailsBySerialNumber_ReturnsMatchingDetails() {
-        // Arrange
-        String serialNumber = "DETAIL";
-        List<Detail> detailList = createDetailList();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("serialNumber"));
-        Page<Detail> expectedPage = new PageImpl<>(detailList, pageable, detailList.size());
-
-        // Mock the detailRepository.findBySerialNumberContaining() method
-        when(detailRepository.findBySerialNumberContaining(eq(serialNumber), any(Pageable.class)))
+  @Test
+  void searchDetailsBySerialNumber_ReturnsMatchingDetails() {
+    List<Detail> detailList = createDetailList();
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_SERIAL_NUMBER));
+    Page<Detail> expectedPage = new PageImpl<>(detailList, pageable, detailList.size());
+    when(detailRepository.findBySerialNumberContaining(eq(TestConstants.SERIAL_NUMBER), any(Pageable.class)))
                 .thenReturn(expectedPage);
+    Page<DetailGetResponseDto> result = detailService.searchDetailsBySerialNumber(TestConstants.SERIAL_NUMBER, 0, 10, "serialNumber");
+      assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
+      assertEquals(expectedPage.getNumber(), result.getNumber());
+      assertEquals(detailList.size(), result.getContent().size());
+  }
 
-        // Act
-        Page<DetailGetResponseDto> result = detailService.searchDetailsBySerialNumber(serialNumber, 0, 10, "serialNumber");
-
-        // Assert
-        assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
-        assertEquals(expectedPage.getNumber(), result.getNumber());
-        assertEquals(detailList.size(), result.getContent().size());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void searchDetailsByPrice_ReturnsMatchingDetails() {
-        // Arrange
-        BigDecimal price = BigDecimal.valueOf(100.00);
-        List<Detail> detailList = createDetailList();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("serialNumber"));
-        Page<Detail> expectedPage = new PageImpl<>(detailList, pageable, detailList.size());
-
-        // Mock the detailRepository.findByPrice() method
-        when(detailRepository.findByPrice(eq(price), any(Pageable.class)))
+  @Test
+  void searchDetailsByPrice_ReturnsMatchingDetails() {
+    BigDecimal price = BigDecimal.valueOf(100.00);
+    List<Detail> detailList = createDetailList();
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_SERIAL_NUMBER));
+    Page<Detail> expectedPage = new PageImpl<>(detailList, pageable, detailList.size());
+    when(detailRepository.findByPrice(eq(price), any(Pageable.class)))
                 .thenReturn(expectedPage);
+    Page<DetailGetResponseDto> result = detailService.searchDetailsByPrice(price, TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_SERIAL_NUMBER);
+    assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
+    assertEquals(expectedPage.getNumber(), result.getNumber());
+    assertEquals(detailList.size(), result.getContent().size());
+  }
 
-        // Act
-        Page<DetailGetResponseDto> result = detailService.searchDetailsByPrice(price, 0, 10, "serialNumber");
+  @Test
+  void deleteDetail_DeletesDetail_WhenDetailExists() {
+    when(detailRepository.existsBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(true);
+    detailService.deleteDetail(TestConstants.SERIAL_NUMBER);
+    verify(detailRepository, times(1)).deleteBySerialNumber(TestConstants.SERIAL_NUMBER);
+  }
 
-        // Assert
-        assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
-        assertEquals(expectedPage.getNumber(), result.getNumber());
-        assertEquals(detailList.size(), result.getContent().size());
-        // ... assert other properties as needed
-    }
+  @Test
+  void deleteDetail_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
+    when(detailRepository.existsBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(false);
+    assertThrows(DetailNotFoundException.class, () -> detailService.deleteDetail(TestConstants.SERIAL_NUMBER));
+  }
 
-    @Test
-    void deleteDetail_DeletesDetail_WhenDetailExists() {
-        // Arrange
-        String serialNumber = "DETAIL1";
+  @Test
+  void changeDetail_UpdatesDetail_WhenDetailExists() {
+    Detail existingDetail = createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(100.00));
+    DetailUpdateRequestDto updatedDetail = createUpdatedDetail(TestConstants.SERIAL_NUMBER_2, BigDecimal.valueOf(200.00));
+    when(detailRepository.existsBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(true);
+    when(detailRepository.findBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(Optional.of(existingDetail));
+    when(detailRepository.save(any(Detail.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    Detail result = detailService.changeDetail(TestConstants.SERIAL_NUMBER, updatedDetail);
+    assertEquals(updatedDetail.getSerialNumber(), result.getSerialNumber());
+    assertEquals(updatedDetail.getPrice(), result.getPrice());
+  }
 
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(serialNumber)).thenReturn(true);
+  @Test
+  void changeDetail_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
+    DetailUpdateRequestDto updatedDetail = createUpdatedDetail(TestConstants.SERIAL_NUMBER_2, BigDecimal.valueOf(200.00));
+    when(detailRepository.existsBySerialNumber(TestConstants.SERIAL_NUMBER)).thenReturn(false);
+    assertThrows(DetailNotFoundException.class, () -> detailService.changeDetail(TestConstants.SERIAL_NUMBER, updatedDetail));
+  }
 
-        // Act
-        detailService.deleteDetail(serialNumber);
+  private Detail createDetail(String serialNumber, BigDecimal price) {
+    Detail detail = new Detail();
+    detail.setSerialNumber(serialNumber);
+    detail.setPrice(price);
+    return detail;
+  }
 
-        // Assert
-        verify(detailRepository, times(1)).deleteBySerialNumber(serialNumber);
-    }
+  private List<Detail> createDetailList() {
+    List<Detail> detailList = new ArrayList<>();
+    detailList.add(createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(100.00)));
+    detailList.add(createDetail(TestConstants.SERIAL_NUMBER, BigDecimal.valueOf(200.00)));
+    return detailList;
+  }
 
-    @Test
-    void deleteDetail_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
-        // Arrange
-        String serialNumber = "DETAIL1";
-
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(serialNumber)).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(DetailNotFoundException.class, () -> detailService.deleteDetail(serialNumber));
-    }
-
-    @Test
-    void changeDetail_UpdatesDetail_WhenDetailExists() {
-        // Arrange
-        String serialNumber = "DETAIL1";
-        Detail existingDetail = createDetail(serialNumber, BigDecimal.valueOf(100.00));
-        DetailUpdateRequestDto updatedDetail = createUpdatedDetail("UPDATED_DETAIL", BigDecimal.valueOf(200.00));
-
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(serialNumber)).thenReturn(true);
-
-        // Mock the detailRepository.findBySerialNumber() method
-        when(detailRepository.findBySerialNumber(serialNumber)).thenReturn(Optional.of(existingDetail));
-
-        // Mock the detailRepository.save() method
-        when(detailRepository.save(any(Detail.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        Detail result = detailService.changeDetail(serialNumber, updatedDetail);
-
-        // Assert
-        assertEquals(updatedDetail.getSerialNumber(), result.getSerialNumber());
-        assertEquals(updatedDetail.getPrice(), result.getPrice());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void changeDetail_ThrowsDetailNotFoundException_WhenDetailDoesNotExist() {
-        // Arrange
-        String serialNumber = "DETAIL1";
-        DetailUpdateRequestDto updatedDetail = createUpdatedDetail("UPDATED_DETAIL", BigDecimal.valueOf(200.00));
-
-        // Mock the detailRepository.existsBySerialNumber() method
-        when(detailRepository.existsBySerialNumber(serialNumber)).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(DetailNotFoundException.class, () -> detailService.changeDetail(serialNumber, updatedDetail));
-    }
-
-    private Detail createDetail(String serialNumber, BigDecimal price) {
-        Detail detail = new Detail();
-        detail.setSerialNumber(serialNumber);
-        detail.setPrice(price);
-        // ... set other properties as needed
-        return detail;
-    }
-
-    private List<Detail> createDetailList() {
-        List<Detail> detailList = new ArrayList<>();
-        detailList.add(createDetail("DETAIL1", BigDecimal.valueOf(100.00)));
-        detailList.add(createDetail("DETAIL2", BigDecimal.valueOf(200.00)));
-        // ... add more details as needed
-        return detailList;
-    }
-
-    private DetailUpdateRequestDto createUpdatedDetail(String serialNumber, BigDecimal price) {
-        DetailUpdateRequestDto detailDto = new DetailUpdateRequestDto();
-        detailDto.setSerialNumber(serialNumber);
-        detailDto.setPrice(price);
-        // ... set other properties as needed
-        return detailDto;
-    }
-
+  private DetailUpdateRequestDto createUpdatedDetail(String serialNumber, BigDecimal price) {
+    DetailUpdateRequestDto detailDto = new DetailUpdateRequestDto();
+    detailDto.setSerialNumber(serialNumber);
+    detailDto.setPrice(price);
+    return detailDto;
+  }
 }

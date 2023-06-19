@@ -11,347 +11,211 @@ import com.example.drivesbillsmicroservice.exceptions.driver.DriverAlreadyExistE
 import com.example.drivesbillsmicroservice.exceptions.driver.DriverNotFoundException;
 import com.example.drivesbillsmicroservice.kafka.Producer;
 import com.example.drivesbillsmicroservice.repository.DriverRepository;
+import com.example.drivesbillsmicroservice.utils.TestConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.*;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageImpl;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DriverServiceImplementationTest {
-    @Mock
-    private DriverRepository driverRepository;
+  @Mock
+  private DriverRepository driverRepository;
 
-    @Mock
-    private Producer producer;
+  @Mock
+  private Producer producer;
 
-    @InjectMocks
-    private DriverServiceImplementation driverService;
+  @InjectMocks
+  private DriverServiceImplementation driverService;
 
-    @Captor
-    private ArgumentCaptor<CarPurchaseEvent> carPurchaseEventCaptor;
+  @Test
+  void registerDriver_CreatesDriver_WhenDriverDoesNotExist() {
+    DriverCreateRequestDto driverCreateRequestDto = createDriverCreateRequestDto();
+    when(driverRepository.existsByPassport(driverCreateRequestDto.getPassport())).thenReturn(false);
+    driverService.registerDriver(driverCreateRequestDto);
+    verify(driverRepository).save(any(Driver.class));
+  }
 
-    @Captor
-    private ArgumentCaptor<DetailAddEvent> detailAddEventCaptor;
+  @Test
+  void registerDriver_ThrowsDriverAlreadyExistException_WhenDriverAlreadyExists() {
+    DriverCreateRequestDto driverCreateRequestDto = createDriverCreateRequestDto();
+    when(driverRepository.existsByPassport(driverCreateRequestDto.getPassport())).thenReturn(true);
+    assertThrows(DriverAlreadyExistException.class, () -> driverService.registerDriver(driverCreateRequestDto));
+  }
 
-    @Test
-    void registerDriver_CreatesDriver_WhenDriverDoesNotExist() {
-        // Arrange
-        DriverCreateRequestDto driverCreateRequestDto = createDriverCreateRequestDto();
-        when(driverRepository.existsByPassport(driverCreateRequestDto.getPassport())).thenReturn(false);
+  @Test
+  void findDriverByPassport_ReturnsDriver_WhenDriverExists() {
+    Driver driver = createDriver(TestConstants.FIRST_NAME, TestConstants.LAST_NAME, TestConstants.PASSPORT, LocalDate.now());
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(Optional.of(driver));
+    Optional<DriverGetResponseDto> result = driverService.findDriverByPassport(TestConstants.PASSPORT);
+    assertTrue(result.isPresent());
+    assertEquals(driver.getFirstName(), result.get().getFirstName());
+    assertEquals(driver.getLastName(), result.get().getLastName());
+  }
 
-        // Act
-        driverService.registerDriver(driverCreateRequestDto);
+  @Test
+  void findDriverByPassport_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(Optional.empty());
+    assertThrows(DriverNotFoundException.class, () -> driverService.findDriverByPassport(TestConstants.PASSPORT));
+  }
 
-        // Assert
-        verify(driverRepository).save(any(Driver.class));
-    }
+  @Test
+  void deleteDriver_DeletesDriver_WhenDriverExists() {
+    Optional<Driver> driver = Optional.of(createDriver(TestConstants.FIRST_NAME, TestConstants.LAST_NAME, TestConstants.PASSPORT, LocalDate.now()));
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(driver);
+    driverService.deleteDriver(TestConstants.PASSPORT);
+    verify(driverRepository).deleteByPassport(TestConstants.PASSPORT);
+  }
 
-    @Test
-    void registerDriver_ThrowsDriverAlreadyExistException_WhenDriverAlreadyExists() {
-        // Arrange
-        DriverCreateRequestDto driverCreateRequestDto = createDriverCreateRequestDto();
-        when(driverRepository.existsByPassport(driverCreateRequestDto.getPassport())).thenReturn(true);
+  @Test
+  void deleteDriver_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(Optional.empty());
+    assertThrows(DriverNotFoundException.class, () -> driverService.deleteDriver(TestConstants.PASSPORT));
+  }
 
-        // Act & Assert
-        assertThrows(DriverAlreadyExistException.class, () -> driverService.registerDriver(driverCreateRequestDto));
-    }
+  @Test
+  void updateDriver_UpdatesDriver_WhenDriverExists() {
+    DriverUpdateRequestDto updatedDriver = createUpdatedDriver();
+    Driver existingDriver = createDriver(TestConstants.FIRST_NAME, TestConstants.LAST_NAME, TestConstants.PASSPORT, LocalDate.now());
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(Optional.of(existingDriver));
+    driverService.updateDriver(TestConstants.PASSPORT, updatedDriver);
+    verify(driverRepository).save(existingDriver);
+    assertEquals(updatedDriver.getFirstName(), existingDriver.getFirstName());
+    assertEquals(updatedDriver.getLastName(), existingDriver.getLastName());
+  }
 
-    @Test
-    void findDriverByPassport_ReturnsDriver_WhenDriverExists() {
-        String passport = "Oleg";
-        String firstName = "Oleg";
-        String lastName = "PASSPORT1";
+  @Test
+  void updateDriver_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
+    DriverUpdateRequestDto updatedDriver = createUpdatedDriver();
+    when(driverRepository.findDriverByPassport(TestConstants.PASSPORT)).thenReturn(Optional.empty());
+    assertThrows(DriverNotFoundException.class, () -> driverService.updateDriver(TestConstants.PASSPORT, updatedDriver));
+  }
 
-        Driver driver = createDriver(firstName, lastName, passport, LocalDate.now());
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(Optional.of(driver));
+  @Test
+  void getAllDrivers_ReturnsAllDrivers() {
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_LAST_NAME));
+    Page<Driver> driverPage = createDriverPage(pageable);
+    when(driverRepository.findAll(pageable)).thenReturn(driverPage);
+    Page<DriverGetResponseDto> result = driverService.getAllDrivers(TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_LAST_NAME);
+    assertEquals(driverPage.getTotalElements(), result.getTotalElements());
+    assertEquals(driverPage.getTotalPages(), result.getTotalPages());
+  }
 
-        // Act
-        Optional<DriverGetResponseDto> result = driverService.findDriverByPassport(passport);
+  @Test
+  void searchDriversByFirstName_ReturnsMatchingDrivers() {
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_LAST_NAME));
+    Page<Driver> driverPage = createDriverPage(pageable);
+    when(driverRepository.findByFirstNameContaining(TestConstants.FIRST_NAME, pageable)).thenReturn(driverPage);
+    Page<DriverGetResponseDto> result = driverService.searchDriversByFirstName(TestConstants.FIRST_NAME, TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_LAST_NAME);
+    assertEquals(driverPage.getTotalElements(), result.getTotalElements());
+    assertEquals(driverPage.getTotalPages(), result.getTotalPages());
+  }
 
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals(driver.getFirstName(), result.get().getFirstName());
-        assertEquals(driver.getLastName(), result.get().getLastName());
-        // ... assert other properties as needed
-    }
+  @Test
+  void searchDriversByLastName_ReturnsMatchingDrivers() {
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_FIRST_NAME));
+    Page<Driver> driverPage = createDriverPage(pageable);
+    when(driverRepository.findByLastNameContaining(TestConstants.LAST_NAME, pageable)).thenReturn(driverPage);
+    Page<DriverGetResponseDto> result = driverService.searchDriversByLastName(TestConstants.LAST_NAME, TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_FIRST_NAME);
+    assertEquals(driverPage.getTotalElements(), result.getTotalElements());
+    assertEquals(driverPage.getTotalPages(), result.getTotalPages());
+  }
 
-    @Test
-    void findDriverByPassport_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
-        // Arrange
-        String passport = "PASSPORT1";
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(Optional.empty());
+  @Test
+  void searchDriversByPassport_ReturnsMatchingDrivers() {
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_LAST_NAME));
+    Page<Driver> driverPage = createDriverPage(pageable);
+    when(driverRepository.findByPassportContaining(TestConstants.PASSPORT, pageable)).thenReturn(driverPage);
+    Page<DriverGetResponseDto> result = driverService.searchDriversByPassport(TestConstants.PASSPORT, TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_LAST_NAME);
+    assertEquals(driverPage.getTotalElements(), result.getTotalElements());
+    assertEquals(driverPage.getTotalPages(), result.getTotalPages());
+  }
 
-        // Act & Assert
-        assertThrows(DriverNotFoundException.class, () -> driverService.findDriverByPassport(passport));
-    }
+  @Test
+  void searchDriversByExperience_ReturnsMatchingDrivers() {
+    Pageable pageable = PageRequest.of(TestConstants.PAGE, TestConstants.SIZE, Sort.by(TestConstants.SORT_BY_LAST_NAME));
+    Page<Driver> driverPage = createDriverPage(pageable);
+    when(driverRepository.findByExperience(TestConstants.EXPERIENCE, pageable)).thenReturn(driverPage);
+    Page<DriverGetResponseDto> result = driverService.searchDriversByExperience(TestConstants.EXPERIENCE, TestConstants.PAGE, TestConstants.SIZE, TestConstants.SORT_BY_LAST_NAME);
+    assertEquals(driverPage.getTotalElements(), result.getTotalElements());
+    assertEquals(driverPage.getTotalPages(), result.getTotalPages());
+  }
 
-    @Test
-    void deleteDriver_DeletesDriver_WhenDriverExists() {
-        // Arrange
-        String passport = "Oleg";
-        String firstName = "Oleg";
-        String lastName = "PASSPORT1";
-        Optional<Driver> driver = Optional.of(createDriver(firstName, lastName, passport, LocalDate.now()));
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(driver);
+  @Test
+  void sendCarPurchaseEvent_ReturnsMessageSentByProducer() throws JsonProcessingException {
+    CarPurchaseEvent carPurchaseEvent = createCarPurchaseEvent();
+    when(producer.sendMessageCarPurchase(carPurchaseEvent)).thenReturn(TestConstants.MESSAGE_SENT);
+    String result = driverService.sendCarPurchaseEvent(carPurchaseEvent);
+    assertEquals(TestConstants.MESSAGE_SENT, result);
+  }
 
-        // Act
-        driverService.deleteDriver(passport);
+  @Test
+  void sendSuccessfulPaymentEvent_ReturnsMessageSentByProducer() throws JsonProcessingException {
+    DetailAddEvent detailAddEvent = createDetailAddEvent();
+    when(producer.sendMessageDetailAdd(detailAddEvent)).thenReturn(TestConstants.MESSAGE_SENT);
+    String result = driverService.sendSuccessfulPaymentEvent(detailAddEvent);
+    assertEquals(TestConstants.MESSAGE_SENT, result);
+  }
 
-        // Assert
-        verify(driverRepository).deleteByPassport(passport);
-    }
+  private DriverCreateRequestDto createDriverCreateRequestDto() {
+    DriverCreateRequestDto dto = new DriverCreateRequestDto();
+    dto.setFirstName(TestConstants.FIRST_NAME);
+    dto.setLastName(TestConstants.LAST_NAME);
+    dto.setPassport(TestConstants.PASSPORT);
+    dto.setDateOfBirth(LocalDate.of(1990, 5, 10));
+    return dto;
+  }
 
-    @Test
-    void deleteDriver_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
-        // Arrange
-        String passport = "PASSPORT1";
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(Optional.empty());
+  private Driver createDriver(String firstName, String lastName, String passport, LocalDate dateOfBirth) {
+    Driver driver = new Driver();
+    driver.setFirstName(firstName);
+    driver.setLastName(lastName);
+    driver.setPassport(passport);
+    driver.setDateOfBirth(dateOfBirth);
+    return driver;
+  }
 
-        // Act & Assert
-        assertThrows(DriverNotFoundException.class, () -> driverService.deleteDriver(passport));
-    }
+  private DriverUpdateRequestDto createUpdatedDriver() {
+    DriverUpdateRequestDto dto = new DriverUpdateRequestDto();
+    dto.setFirstName(TestConstants.FIRST_NAME);
+    dto.setLastName(TestConstants.LAST_NAME);
+    dto.setLicenseCategory(LicenseCategory.B);
+    return dto;
+  }
 
-    @Test
-    void updateDriver_UpdatesDriver_WhenDriverExists() {
-        // Arrange
-        String passport = "Oleg";
-        String firstName = "Oleg";
-        String lastName = "PASSPORT1";
-        DriverUpdateRequestDto updatedDriver = createUpdatedDriver();
-        Driver existingDriver = createDriver(firstName, lastName, passport, LocalDate.now());
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(Optional.of(existingDriver));
+  private Page<Driver> createDriverPage(Pageable pageable) {
+    List<Driver> drivers = new ArrayList<>();
+    return new PageImpl<>(drivers, pageable, drivers.size());
+  }
 
-        // Act
-        driverService.updateDriver(passport, updatedDriver);
+  private CarPurchaseEvent createCarPurchaseEvent() {
+    CarPurchaseEvent event = new CarPurchaseEvent();
+    event.setLicensePlate(TestConstants.LICENSE_PLATE);
+    event.setDriverId(1L);
+    return event;
+  }
 
-        // Assert
-        verify(driverRepository).save(existingDriver);
-        assertEquals(updatedDriver.getFirstName(), existingDriver.getFirstName());
-        assertEquals(updatedDriver.getLastName(), existingDriver.getLastName());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void updateDriver_ThrowsDriverNotFoundException_WhenDriverDoesNotExist() {
-        // Arrange
-        String passport = "PASSPORT1";
-        DriverUpdateRequestDto updatedDriver = createUpdatedDriver();
-        when(driverRepository.findDriverByPassport(passport)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(DriverNotFoundException.class, () -> driverService.updateDriver(passport, updatedDriver));
-    }
-
-    @Test
-    void getAllDrivers_ReturnsAllDrivers() {
-        // Arrange
-        int page = 0;
-        int size = 10;
-        String sortBy = "lastName";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Driver> driverPage = createDriverPage(pageable);
-        when(driverRepository.findAll(pageable)).thenReturn(driverPage);
-
-        // Act
-        Page<DriverGetResponseDto> result = driverService.getAllDrivers(page, size, sortBy);
-
-        // Assert
-        assertEquals(driverPage.getTotalElements(), result.getTotalElements());
-        assertEquals(driverPage.getTotalPages(), result.getTotalPages());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void searchDriversByFirstName_ReturnsMatchingDrivers() {
-        // Arrange
-        String firstName = "John";
-        int page = 0;
-        int size = 10;
-        String sortBy = "lastName";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Driver> driverPage = createDriverPage(pageable);
-        when(driverRepository.findByFirstNameContaining(firstName, pageable)).thenReturn(driverPage);
-
-        // Act
-        Page<DriverGetResponseDto> result = driverService.searchDriversByFirstName(firstName, page, size, sortBy);
-
-        // Assert
-        assertEquals(driverPage.getTotalElements(), result.getTotalElements());
-        assertEquals(driverPage.getTotalPages(), result.getTotalPages());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void searchDriversByLastName_ReturnsMatchingDrivers() {
-        // Arrange
-        String lastName = "Doe";
-        int page = 0;
-        int size = 10;
-        String sortBy = "firstName";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Driver> driverPage = createDriverPage(pageable);
-        when(driverRepository.findByLastNameContaining(lastName, pageable)).thenReturn(driverPage);
-
-        // Act
-        Page<DriverGetResponseDto> result = driverService.searchDriversByLastName(lastName, page, size, sortBy);
-
-        // Assert
-        assertEquals(driverPage.getTotalElements(), result.getTotalElements());
-        assertEquals(driverPage.getTotalPages(), result.getTotalPages());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void searchDriversByPassport_ReturnsMatchingDrivers() {
-        // Arrange
-        String passport = "PASSPORT1";
-        int page = 0;
-        int size = 10;
-        String sortBy = "lastName";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Driver> driverPage = createDriverPage(pageable);
-        when(driverRepository.findByPassportContaining(passport, pageable)).thenReturn(driverPage);
-
-        // Act
-        Page<DriverGetResponseDto> result = driverService.searchDriversByPassport(passport, page, size, sortBy);
-
-        // Assert
-        assertEquals(driverPage.getTotalElements(), result.getTotalElements());
-        assertEquals(driverPage.getTotalPages(), result.getTotalPages());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void searchDriversByExperience_ReturnsMatchingDrivers() {
-        // Arrange
-        int experience = 5;
-        int page = 0;
-        int size = 10;
-        String sortBy = "lastName";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Driver> driverPage = createDriverPage(pageable);
-        when(driverRepository.findByExperience(experience, pageable)).thenReturn(driverPage);
-
-        // Act
-        Page<DriverGetResponseDto> result = driverService.searchDriversByExperience(experience, page, size, sortBy);
-
-        // Assert
-        assertEquals(driverPage.getTotalElements(), result.getTotalElements());
-        assertEquals(driverPage.getTotalPages(), result.getTotalPages());
-        // ... assert other properties as needed
-    }
-
-    @Test
-    void sendCarPurchaseEvent_ReturnsMessageSentByProducer() throws JsonProcessingException {
-        // Arrange
-        CarPurchaseEvent carPurchaseEvent = createCarPurchaseEvent();
-        String expectedMessage = "Message sent";
-        when(producer.sendMessageCarPurchase(carPurchaseEvent)).thenReturn(expectedMessage);
-
-        // Act
-        String result = driverService.sendCarPurchaseEvent(carPurchaseEvent);
-
-        // Assert
-        assertEquals(expectedMessage, result);
-    }
-
-    @Test
-    void sendSuccessfulPaymentEvent_ReturnsMessageSentByProducer() throws JsonProcessingException {
-        // Arrange
-        DetailAddEvent detailAddEvent = createDetailAddEvent();
-        String expectedMessage = "Message sent";
-        when(producer.sendMessageDetailAdd(detailAddEvent)).thenReturn(expectedMessage);
-
-        // Act
-        String result = driverService.sendSuccessfulPaymentEvent(detailAddEvent);
-
-        // Assert
-        assertEquals(expectedMessage, result);
-    }
-
-    private List<Driver> createDriversWithBirthday() {
-        // Создаем и возвращаем список водителей с днем рождения для тестирования
-        List<Driver> drivers = new ArrayList<>();
-
-        // Добавляем водителей с днем рождения в список
-        drivers.add(createDriver("John", "Doe", "1234567890", LocalDate.now()));
-        drivers.add(createDriver("Jane", "Smith", "0987654321", LocalDate.now()));
-
-        return drivers;
-    }
-
-    private DriverCreateRequestDto createDriverCreateRequestDto() {
-        // Создаем и возвращаем объект DriverCreateRequestDto для тестирования
-        DriverCreateRequestDto dto = new DriverCreateRequestDto();
-        dto.setFirstName("John");
-        dto.setLastName("Doe");
-        dto.setPassport("1234567890");
-        dto.setDateOfBirth(LocalDate.of(1990, 5, 10));
-        // Задайте другие необходимые свойства объекта dto
-
-        return dto;
-    }
-
-    private Driver createDriver(String firstName, String lastName, String passport, LocalDate dateOfBirth) {
-        // Создаем и возвращаем объект Driver для тестирования с указанными свойствами
-        Driver driver = new Driver();
-        driver.setFirstName(firstName);
-        driver.setLastName(lastName);
-        driver.setPassport(passport);
-        driver.setDateOfBirth(dateOfBirth);
-        // Задайте другие необходимые свойства объекта driver
-
-        return driver;
-    }
-
-    private DriverUpdateRequestDto createUpdatedDriver() {
-        // Создаем и возвращаем объект DriverUpdateRequestDto для тестирования
-        DriverUpdateRequestDto dto = new DriverUpdateRequestDto();
-        dto.setFirstName("John");
-        dto.setLastName("Doe");
-        dto.setLicenseCategory(LicenseCategory.B);
-        // Задайте другие необходимые свойства объекта dto
-
-        return dto;
-    }
-
-    private Page<Driver> createDriverPage(Pageable pageable) {
-        // Создаем и возвращаем объект Page<Driver> для тестирования с указанным pageable
-        List<Driver> drivers = new ArrayList<>();
-        // Создайте список водителей и добавьте их в drivers
-
-        return new PageImpl<>(drivers, pageable, drivers.size());
-    }
-
-    private CarPurchaseEvent createCarPurchaseEvent() {
-        // Создаем и возвращаем объект CarPurchaseEvent для тестирования
-        CarPurchaseEvent event = new CarPurchaseEvent();
-        event.setLicensePlate("0987654321A");
-        event.setDriverId(1L);
-        // Задайте другие необходимые свойства объекта event
-
-        return event;
-    }
-
-    private DetailAddEvent createDetailAddEvent() {
-        DetailAddEvent event = new DetailAddEvent();
-        event.setSerialNumber("1234567890A");
-        event.setLicensePlate("0987654321A");
-        return event;
-    }
+  private DetailAddEvent createDetailAddEvent() {
+    DetailAddEvent event = new DetailAddEvent();
+    event.setSerialNumber(TestConstants.SERIAL_NUMBER);
+    event.setLicensePlate(TestConstants.LICENSE_PLATE);
+    return event;
+  }
 }
