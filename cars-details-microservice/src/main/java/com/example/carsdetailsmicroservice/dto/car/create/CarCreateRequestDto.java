@@ -3,7 +3,6 @@ package com.example.carsdetailsmicroservice.dto.car.create;
 import com.example.carsdetailsmicroservice.entity.Detail;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
@@ -53,7 +52,6 @@ public class CarCreateRequestDto {
   private Integer year;
   @Schema(description = "List of details",
           example = "QWERTY12345, QWERTY54321")
-  @Valid
   @NotEmpty(message = "{validate.car.details.notempty}")
   private Set<Detail> details = new HashSet<>();
 }

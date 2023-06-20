@@ -1,7 +1,6 @@
 package com.example.carsdetailsmicroservice.config;
 
 import java.util.Map;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;

@@ -16,10 +16,7 @@ import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -155,7 +152,7 @@ public class DriverController {
   )
   @PatchMapping("/{passport}")
   public ResponseEntity<MessageDto> updateDriver(@PathVariable String passport,
-                                                 @RequestBody DriverUpdateRequestDto updatedDriver) {
+                                                 @Valid @RequestBody DriverUpdateRequestDto updatedDriver) {
     driverService.updateDriver(passport, updatedDriver);
     return controllerUtils.createResponseEntityOk("update.driver.message");
   }

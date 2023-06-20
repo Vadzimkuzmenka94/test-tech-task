@@ -8,8 +8,8 @@ public class TestConstants {
     public static final String MODEL= "Mustang";
     public static final String SORT_BY_VIN = "vin";
     public static final String SORT_BY_ID = "id";
-    public static final String VIN_1 = "VIN123";
-    public static final String VIN_2 = "VIN1234";
+    public static final String VIN_1 = "VIN12341FCA";
+    public static final String VIN_2 = "VIN1234ACSF";
     public static final String LICENSE_PLATE_1= "ABC123";
     public static final String LICENSE_PLATE_2= "ABC1234";
     public static final String DETAIL_CREATED_MESSAGE = "Detail created";

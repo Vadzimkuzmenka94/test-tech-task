@@ -15,10 +15,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.servers.Server;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -77,7 +76,7 @@ public class CarController {
           }
   )
   @PostMapping
-  public ResponseEntity<MessageDto> createCar(@RequestBody CarCreateRequestDto carRequestDto) {
+  public ResponseEntity<MessageDto> createCar(@Valid @RequestBody CarCreateRequestDto carRequestDto) {
     carService.registerCar(carRequestDto);
     return controllerUtils.createResponseEntityOk("create.car.message");
   }
@@ -231,7 +230,7 @@ public class CarController {
   )
   @PatchMapping("/{vin}")
   public ResponseEntity<MessageDto> updateCar(@PathVariable String vin,
-                                              @RequestBody CarUpdateRequestDto updatedCar) {
+                                              @Valid @RequestBody CarUpdateRequestDto updatedCar) {
     carService.updateCar(vin, updatedCar);
     return controllerUtils.createResponseEntityOk("update.car.message");
   }

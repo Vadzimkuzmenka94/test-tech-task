@@ -1,7 +1,6 @@
 package com.example.drivesbillsmicroservice.config;
 
 import java.util.Map;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;

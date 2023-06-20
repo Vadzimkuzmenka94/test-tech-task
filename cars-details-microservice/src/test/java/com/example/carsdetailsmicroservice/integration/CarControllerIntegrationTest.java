@@ -6,6 +6,7 @@ import com.example.carsdetailsmicroservice.dto.car.create.CarCreateRequestDto;
 import com.example.carsdetailsmicroservice.dto.car.get.CarGetResponseDto;
 import com.example.carsdetailsmicroservice.dto.car.update.CarUpdateRequestDto;
 import com.example.carsdetailsmicroservice.dto.message.MessageDto;
+import com.example.carsdetailsmicroservice.entity.Detail;
 import com.example.carsdetailsmicroservice.repository.CarRepository;
 import com.example.carsdetailsmicroservice.service.CarService;
 import com.example.carsdetailsmicroservice.utils.TestConstants;
@@ -20,10 +21,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.HashSet;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,15 +52,19 @@ public class CarControllerIntegrationTest {
   @Test
   public void testCreateCar() throws Exception {
     CarCreateRequestDto carRequestDto = new CarCreateRequestDto();
+    Detail detail = new Detail(TestConstants.ID, TestConstants.SERIAL_NUMBER, new BigDecimal(10));
+    Set<Detail> details = new HashSet<>();
+    details.add(detail);
     carRequestDto.setModel(TestConstants.MODEL);
     carRequestDto.setVin(TestConstants.VIN_1);
     carRequestDto.setLicensePlate(TestConstants.LICENSE_PLATE_1);
+    carRequestDto.setDetails(details);
     given(controllerUtils.createResponseEntityOk(anyString())).willReturn(ResponseEntity.ok(new MessageDto(TestConstants.CAR_CREATED_MESSAGE)));
     mockMvc.perform(post("/cars")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(carRequestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(TestConstants.CAR_CREATED_MESSAGE));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(new ObjectMapper().writeValueAsString(carRequestDto)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value(TestConstants.CAR_CREATED_MESSAGE));
   }
 
   @Test

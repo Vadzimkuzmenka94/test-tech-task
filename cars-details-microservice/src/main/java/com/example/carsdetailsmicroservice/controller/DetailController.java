@@ -16,9 +16,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.servers.Server;
 import java.math.BigDecimal;
+
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -76,7 +76,7 @@ public class DetailController {
           }
   )
   @PostMapping
-  public ResponseEntity<MessageDto> createDetail(@RequestBody DetailCreateRequestDto detailRequestDto) {
+  public ResponseEntity<MessageDto> createDetail(@Valid @RequestBody DetailCreateRequestDto detailRequestDto) {
     Detail detail = DetailMapper.INSTANCE.toDetail(detailRequestDto);
     detailService.createDetail(detail);
     return controllerUtils.createResponseEntityOk("create.detail.message");
@@ -206,7 +206,7 @@ public class DetailController {
   )
   @PatchMapping("/{serialNumber}")
   public ResponseEntity<MessageDto> updateDetail(@PathVariable String serialNumber,
-                                                 @RequestBody DetailUpdateRequestDto updatedDetail) {
+                                                 @Valid @RequestBody DetailUpdateRequestDto updatedDetail) {
     detailService.changeDetail(serialNumber, updatedDetail);
     return controllerUtils.createResponseEntityOk("update.detail.message");
   }
