@@ -60,14 +60,15 @@
   6. Перехват и обёртка ошибок в стандартизированный ответ
 
 ### Сервис Б. Владеет водителями и их счетами
+
 - Автоматическое поздравление (вывод в логи) водителей с днём рождения
 - Функционал введения счёта
 
+![2023-06-20_11-04](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/7879bb92-74d7-47f7-9809-8bbb7e74281d)
+![2023-06-20_11-05](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/757c3aa0-c8e0-459b-b7d4-8a225cba60f4)
 
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/0656993b-95c5-43b0-a65b-1c6e2d702122)
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/a51fd203-63cd-4c95-80a0-b67c90534f3a)
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/ed57327a-87b0-44d8-bda3-326f68eb6703)
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/93b23975-55be-4b20-be23-c09729d945e1)
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/5aa9b461-c0eb-4dd3-bb73-d294bbf5be29)
-![image](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/8c62e8db-1dd2-4463-a184-82b5ea0485fe)
+![2023-06-20_11-08](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/a3582e56-3ccd-4625-8d77-9e3408b2ead6)
+![2023-06-20_11-06](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/ec3fc51f-8f7d-4820-9014-0b9844431fb2)
+![2023-06-20_11-07_1](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/2037725c-d666-4be4-a41f-9a1d48d313f7)
+![2023-06-20_11-07](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/e77f9c1a-1332-4926-ab58-c6bfc3a3b59c)
 
