@@ -1,4 +1,4 @@
-![2023-06-20_11-05](https://github.com/Vadzimkuzmenka94/test-tech-task-rik-masters/assets/85760475/833e7ab0-3dcf-4370-b820-83904193618d)# test-tech-task-rik-masters
+# test-tech-task-rik-masters
 ## Тестовые задания
 
 Не требуется полное соответствие всем пунктам или полная реализация,
